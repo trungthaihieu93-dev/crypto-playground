@@ -1,25 +1,50 @@
-const crypto = require('crypto')
+const { hexHash, base64Hash } = require('./crypto')
+const { bcryptHash, compare } = require('./bcrypt')
 
 const string = 'TEST'
+const maxNum = 365
+const numOfDigits = 4
 
-const base64Hash = (input) => {
-  const base64Hash = crypto.createHash('sha256').update(input).digest('base64')
+const genNumbers = () => {
+  try {
+    console.log('Generating numbers...')
 
-  return base64Hash
+    const numbers = []
+    const replaceZero = (number) =>
+      `${number / Math.pow(10, numOfDigits - 1)}`.replace('.', '')
+
+    while (numbers.length < maxNum) {
+      const number = Math.floor(Math.random() * Math.pow(10, numOfDigits))
+      const parsedNumber = `${
+        `${number}`.length < numOfDigits ? replaceZero(number) : number
+      }`
+      if (!numbers.includes(parsedNumber)) numbers.push(`${parsedNumber}`)
+    }
+
+    return JSON.stringify(numbers.sort((a, b) => `${a}`.localeCompare(b)))
+  } catch (error) {
+    console.error(error)
+    return null
+  }
 }
 
-const hexHash = (input) => {
-  const hh = crypto.createHash('sha256').update(input).digest('hex')
-
-  return hh
-}
-
-const main = () => {
+const main = async () => {
   try {
     const b64Hash = base64Hash(string)
     const hHash = hexHash(string)
-    console.log(b64Hash)
-    console.log(hHash)
+    const bcHash = await bcryptHash(string)
+    // Crypto
+    console.log('--Crypto--')
+    console.log(`b64Hash: ${b64Hash}`)
+    console.log(`hHash: ${hHash}`)
+    // Bcrypt
+    console.log('--Bcrypt--')
+    console.log(`bcryptHash: ${bcHash}`)
+    console.log(await compare(b64Hash, bcHash))
+    console.log(await compare(hHash, bcHash))
+    const numberHash = await bcryptHash(genNumbers() || string)
+    console.log(`numberHash: ${numberHash}`)
+    console.log()
   } catch (error) {
     console.error(error)
   }
